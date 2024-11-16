@@ -1,0 +1,12 @@
+.env
+
+# Build files
+bin/
+obj/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# CI/CD
+*.yml.local
