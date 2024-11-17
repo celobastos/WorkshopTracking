@@ -6,7 +6,7 @@ import CollaboratorList from "./Components/Colaborador/ColaboradorList";
 import WorkshopList from "./Components/Workshop/WorkshopList";
 import WorkshopDetails from "./Components/Workshop/WorkshopDetails";
 import ProtectedRoute from "./Components/Route/ProtectedRoute";
-import Dashboard from "./Pages/Dashboard/Dashboard"; // Import your dashboard component
+import Dashboard from "./Pages/Dashboard/Dashboard"; 
 
 const App = () => {
   const location = useLocation();
