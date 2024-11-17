@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkshopTracking.Data;
 using WorkshopTracking.Models;
@@ -6,6 +7,7 @@ namespace WorkshopTracking.Controllers
 {
     [Route("api/workshops")]
     [ApiController]
+    [Authorize] 
     public class WorkshopsController : ControllerBase
     {
         private readonly WorkshopContext _context;
