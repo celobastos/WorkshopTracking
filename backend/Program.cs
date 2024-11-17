@@ -5,11 +5,22 @@ using WorkshopTracking.Services;
 using dotenv.net;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.Builder;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load environment variables
 DotEnv.Load();
+
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 builder.Configuration["ConnectionStrings:DefaultConnection"] =
     $"Server={Environment.GetEnvironmentVariable("DB_HOST")};" +
@@ -18,7 +29,6 @@ builder.Configuration["ConnectionStrings:DefaultConnection"] =
     $"Uid={Environment.GetEnvironmentVariable("DB_USER")};" +
     $"Pwd={Environment.GetEnvironmentVariable("DB_PASSWORD")};";
 
-// Get JWT configurations
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
@@ -27,18 +37,15 @@ if (string.IsNullOrEmpty(jwtIssuer) || string.IsNullOrEmpty(jwtAudience))
     throw new InvalidOperationException("JWT configuration is missing or invalid.");
 }
 
-// Register DbContext
 builder.Services.AddDbContext<WorkshopContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         new MySqlServerVersion(new Version(8, 0, 0))
     ));
 
-// Register JwtService as a singleton
 var jwtService = new JwtService();
 builder.Services.AddSingleton(jwtService);
 
-// Configure authentication using JwtService
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -50,35 +57,30 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer,
             ValidAudience = jwtAudience,
-            IssuerSigningKey = jwtService.GetSigningKey() // Pass the dynamic key directly
+            IssuerSigningKey = jwtService.GetSigningKey() 
         };
     });
 
 builder.Services.AddAuthorization();
 
-// Register controllers and Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Enable Swagger in development
-if (app.Environment.IsDevelopment())
-{
+if (app.Environment.IsDevelopment()){
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-else
-{
+else{
     app.UseHttpsRedirection();
 }
 
-// Enable authentication and authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map controllers
 app.MapControllers();
+app.UseCors("AllowFrontend");
 
 app.Run();
