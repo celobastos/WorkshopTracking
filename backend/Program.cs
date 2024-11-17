@@ -1,52 +1,44 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using WorkshopTracking.Data;
-
+using WorkshopTracking.Services;
 using dotenv.net;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load environment variables
 DotEnv.Load();
 
-builder.Configuration["ConnectionStrings:DefaultConnection"] = 
+builder.Configuration["ConnectionStrings:DefaultConnection"] =
     $"Server={Environment.GetEnvironmentVariable("DB_HOST")};" +
     $"Port={Environment.GetEnvironmentVariable("DB_PORT")};" +
     $"Database={Environment.GetEnvironmentVariable("DB_NAME")};" +
     $"Uid={Environment.GetEnvironmentVariable("DB_USER")};" +
     $"Pwd={Environment.GetEnvironmentVariable("DB_PASSWORD")};";
 
-
-var jwtKey = builder.Configuration["Jwt:Key"];
+// Get JWT configurations
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
-if (string.IsNullOrEmpty(jwtKey) || string.IsNullOrEmpty(jwtIssuer) || string.IsNullOrEmpty(jwtAudience))
+if (string.IsNullOrEmpty(jwtIssuer) || string.IsNullOrEmpty(jwtAudience))
 {
     throw new InvalidOperationException("JWT configuration is missing or invalid.");
 }
 
-
+// Register DbContext
 builder.Services.AddDbContext<WorkshopContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        new MySqlServerVersion(new Version(8, 0, 0)) 
+        new MySqlServerVersion(new Version(8, 0, 0))
     ));
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Register JwtService as a singleton
+var jwtService = new JwtService();
+builder.Services.AddSingleton(jwtService);
 
-
-var randomKey = new byte[32];
-using (var rng = RandomNumberGenerator.Create())
-{
-    rng.GetBytes(randomKey);
-}
-
-var signingKey = new SymmetricSecurityKey(randomKey);
+// Configure authentication using JwtService
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -58,14 +50,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer,
             ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey = jwtService.GetSigningKey() // Pass the dynamic key directly
         };
     });
 
 builder.Services.AddAuthorization();
 
+// Register controllers and Swagger
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
+// Enable Swagger in development
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -73,11 +71,14 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseHttpsRedirection(); 
+    app.UseHttpsRedirection();
 }
 
+// Enable authentication and authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Map controllers
 app.MapControllers();
 
 app.Run();

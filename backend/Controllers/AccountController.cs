@@ -1,11 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using WorkshopTracking.Data;
 using WorkshopTracking.Models;
+using WorkshopTracking.Services;
 
 namespace WorkshopTracking.Controllers
 {
@@ -14,29 +13,21 @@ namespace WorkshopTracking.Controllers
     public class AccountController : ControllerBase
     {
         private readonly WorkshopContext _context;
+        private readonly JwtService _jwtService;
         private readonly IConfiguration _configuration;
 
-        // Dynamically generated signing key for session-based tokens
-        private static SymmetricSecurityKey? _dynamicSigningKey;
-
-        public AccountController(WorkshopContext context, IConfiguration configuration)
+        public AccountController(WorkshopContext context, JwtService jwtService, IConfiguration configuration)
         {
             _context = context;
+            _jwtService = jwtService; // Use the shared dynamic signing key from JwtService
             _configuration = configuration;
-
-            // Generate a random signing key for this session if not already set
-            if (_dynamicSigningKey == null)
-            {
-                var randomKey = new byte[32]; // 256-bit key
-                using (var rng = RandomNumberGenerator.Create())
-                {
-                    rng.GetBytes(randomKey);
-                }
-                _dynamicSigningKey = new SymmetricSecurityKey(randomKey);
-            }
         }
 
-        // Registration endpoint
+        /// <summary>
+        /// Register a new user
+        /// </summary>
+        /// <param name="user">User registration details</param>
+        /// <returns>Success or error message</returns>
         [HttpPost("register")]
         public IActionResult Register([FromBody] User user)
         {
@@ -52,7 +43,11 @@ namespace WorkshopTracking.Controllers
             return Ok(new { Message = "User registered successfully." });
         }
 
-        // Login endpoint
+        /// <summary>
+        /// Login and generate a JWT token
+        /// </summary>
+        /// <param name="loginRequest">Login details</param>
+        /// <returns>JWT token</returns>
         [HttpPost("login")]
         public IActionResult Login([FromBody] User loginRequest)
         {
@@ -65,11 +60,14 @@ namespace WorkshopTracking.Controllers
             return Ok(new { Token = token });
         }
 
+        /// <summary>
+        /// Generate a JWT token for a user
+        /// </summary>
+        /// <param name="user">The user for whom the token is generated</param>
+        /// <returns>JWT token string</returns>
         private string GenerateJwtToken(User user)
         {
-            // Use the dynamically generated signing key
-            var securityKey = _dynamicSigningKey ?? throw new InvalidOperationException("Signing key is not initialized.");
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+            var credentials = new SigningCredentials(_jwtService.GetSigningKey(), SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {
@@ -79,8 +77,8 @@ namespace WorkshopTracking.Controllers
             };
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"] ?? "default_issuer",
-                audience: _configuration["Jwt:Audience"] ?? "default_audience",
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
                 claims: claims,
                 expires: DateTime.UtcNow.AddHours(1), // Token validity
                 signingCredentials: credentials
@@ -89,18 +87,16 @@ namespace WorkshopTracking.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        // Endpoint to reset the signing key dynamically (admin-only)
-        [HttpPost("reset-key")]
+        /// <summary>
+        /// Reset the signing key dynamically
+        /// </summary>
+        /// <returns>Message indicating reset status</returns>
+            [HttpPost("reset-key")]
         public IActionResult ResetSigningKey()
         {
-            var randomKey = new byte[32];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(randomKey);
-            }
-            _dynamicSigningKey = new SymmetricSecurityKey(randomKey);
-
-            return Ok(new { Message = "Signing key has been reset. All existing tokens are invalidated." });
+            _jwtService.ResetKey();
+            return Ok(new { Message = "Signing key has been reset. Existing tokens are now invalid." });
         }
+
     }
 }
