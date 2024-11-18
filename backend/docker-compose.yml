@@ -1,17 +1,46 @@
 version: '3.8'
+
 services:
-  mysql:
+  db:
     image: mysql:8.0
-    container_name: workshop_mysql
+    container_name: workshops_db
+    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: workshopdb
-      MYSQL_USER: workshopuser
-      MYSQL_PASSWORD: 250601
+      MYSQL_ROOT_PASSWORD: 250601
+      MYSQL_DATABASE: workshops
     ports:
-      - "3306:3306"
+      - "3307:3306" 
     volumes:
-      - mysql_data:/var/lib/mysql
+      - db_data:/var/lib/mysql 
+    networks:
+      - workshops_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workshops_app
+    restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: workshops
+      DB_USER: root
+      DB_PASSWORD: 250601
+      JWT_KEY: your-strong-secret-key
+      JWT_ISSUER: your-app
+      JWT_AUDIENCE: your-app-users
+    ports:
+      - "5135:5135" # Matches "http" profile in launchsettings.json
+      - "7265:7265" # Matches "https" profile in launchsettings.json
+    depends_on:
+      - db
+    networks:
+      - workshops_network
 
 volumes:
-  mysql_data:
+  db_data:
+
+networks:
+  workshops_network:

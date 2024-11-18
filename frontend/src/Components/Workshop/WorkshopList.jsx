@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import Modal from "../Modal/Modal";
 import api from "../../Services/api";
+import { AiOutlineClose } from "react-icons/ai";
 
 const WorkshopsList = () => {
   const [workshops, setWorkshops] = useState([]);
@@ -15,13 +15,13 @@ const WorkshopsList = () => {
     api
       .get("/workshops")
       .then((response) => {
-        const workshopsData = response.data?.$values || []; // Extract $values or fallback to empty array
+        const workshopsData = response.data?.$values || [];
         setWorkshops(workshopsData);
       })
       .catch((error) => console.error("Error fetching workshops:", error));
   }, []);
 
-  // Add workshop
+
   const handleAddWorkshop = (e) => {
     e.preventDefault();
     api
@@ -35,7 +35,7 @@ const WorkshopsList = () => {
       .catch((error) => console.error("Error adding workshop:", error));
   };
 
-  // Delete workshop
+
   const handleDeleteWorkshop = (id) => {
     api
       .delete(`/workshops/${id}`)
@@ -47,7 +47,6 @@ const WorkshopsList = () => {
       .catch((error) => console.error("Error deleting workshop:", error));
   };
 
-  // Update workshop
   const handleUpdateWorkshop = (key, value) => {
     const updatedWorkshop = { ...selectedWorkshop, [key]: value };
     setSelectedWorkshop(updatedWorkshop);
@@ -78,13 +77,13 @@ const WorkshopsList = () => {
               <p className="mt-1 text-xs text-gray-500">{workshop.descricao}</p>
             </div>
             <button
-              className="text-red-500 hover:text-red-700"
+              className="text-gray-500 hover:text-gray-700"
               onClick={(e) => {
-                e.stopPropagation(); // Prevent click from opening details
+                e.stopPropagation(); 
                 handleDeleteWorkshop(workshop.id);
               }}
             >
-              ✖
+             <AiOutlineClose size={24} />
             </button>
           </li>
         ))}
@@ -93,97 +92,170 @@ const WorkshopsList = () => {
         className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
         onClick={() => setShowAddForm(true)}
       >
-        Add Workshop
+        Adicione um Workshop
       </button>
-
-      {/* Add Workshop Modal */}
-      <Modal isOpen={showAddForm} onClose={() => setShowAddForm(false)}>
-        <h2 className="text-lg font-semibold">Add New Workshop</h2>
-        <form onSubmit={handleAddWorkshop} className="space-y-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Name</label>
-            <input
-              type="text"
-              className="w-full rounded border-gray-300"
-              value={newWorkshop.nome}
-              onChange={(e) => setNewWorkshop({ ...newWorkshop, nome: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Date</label>
-            <input
-              type="date"
-              className="w-full rounded border-gray-300"
-              value={newWorkshop.dataRealizacao}
-              onChange={(e) =>
-                setNewWorkshop({ ...newWorkshop, dataRealizacao: e.target.value })
-              }
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea
-              className="w-full rounded border-gray-300"
-              value={newWorkshop.descricao}
-              onChange={(e) => setNewWorkshop({ ...newWorkshop, descricao: e.target.value })}
-              required
-            />
-          </div>
-          <div className="flex justify-end space-x-2">
+      {showAddForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <form
+            onSubmit={handleAddWorkshop} // Connect the function to the form
+            className="bg-white rounded-lg shadow-lg w-2/5 p-6 relative space-y-8"
+          >
             <button
               type="button"
-              className="bg-gray-500 text-white px-4 py-2 rounded"
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
               onClick={() => setShowAddForm(false)}
             >
-              Cancel
+              <AiOutlineClose size={24} />
             </button>
-            <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
-              Add
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Workshop Details Modal */}
-      <Modal isOpen={showDetails} onClose={() => setShowDetails(false)}>
-        {selectedWorkshop && (
-          <div>
-            <h2 className="text-lg font-semibold">Edit Workshop</h2>
-            <div className="space-y-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Name</label>
-                <input
-                  type="text"
-                  className="w-full rounded border-gray-300"
-                  value={selectedWorkshop.nome}
-                  onChange={(e) => handleUpdateWorkshop("nome", e.target.value)}
-                />
+            <h2 className="text-lg font-semibold text-gray-900">Adicionar Novo Workshop</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Insira os detalhes do novo workshop.
+            </p>
+            <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+              <div className="sm:col-span-6">
+                <label className="block text-sm font-medium text-gray-900">Nome</label>
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-400 sm:text-sm"
+                    value={newWorkshop.nome}
+                    onChange={(e) => setNewWorkshop({ ...newWorkshop, nome: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Date</label>
-                <input
-                  type="date"
-                  className="w-full rounded border-gray-300"
-                  value={selectedWorkshop.dataRealizacao}
-                  onChange={(e) =>
-                    handleUpdateWorkshop("dataRealizacao", e.target.value)
-                  }
-                />
+              <div className="sm:col-span-6">
+                <label className="block text-sm font-medium text-gray-900">Data</label>
+                <div className="mt-2">
+                  <input
+                    type="date"
+                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-400 sm:text-sm"
+                    value={newWorkshop.dataRealizacao}
+                    onChange={(e) => setNewWorkshop({ ...newWorkshop, dataRealizacao: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Description</label>
-                <textarea
-                  className="w-full rounded border-gray-300"
-                  value={selectedWorkshop.descricao}
-                  onChange={(e) => handleUpdateWorkshop("descricao", e.target.value)}
-                />
+              <div className="sm:col-span-6">
+                <label className="block text-sm font-medium text-gray-900">Descrição</label>
+                <div className="mt-2">
+                  <textarea
+                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-400 sm:text-sm"
+                    value={newWorkshop.descricao}
+                    onChange={(e) => setNewWorkshop({ ...newWorkshop, descricao: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </Modal>
+            <div className="mt-6 flex items-center justify-end gap-x-6">
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="text-sm font-semibold text-gray-900"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="rounded-md bg-blue-400 px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
+              >
+                Adicionar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+
+
+      {showDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setShowDetails(false);
+            }}
+            className="bg-white rounded-lg shadow-lg w-2/5 p-6 relative space-y-8"
+          >
+            <button
+              type="button"
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowDetails(false)}
+            >
+              <AiOutlineClose size={24} />
+            </button>
+            {selectedWorkshop && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Editar Workshop</h2>
+                <p className="mt-1 text-sm text-gray-600">Atualize os detalhes do workshop.</p>
+                <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                  <div className="sm:col-span-6">
+                    <label className="block text-sm font-medium text-gray-900">Nome</label>
+                    <div className="mt-2">
+                      <input
+                        type="text"
+                        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-400 sm:text-sm"
+                        value={selectedWorkshop.nome}
+                        onChange={(e) => handleUpdateWorkshop("nome", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="sm:col-span-6">
+                    <label className="block text-sm font-medium text-gray-900">Data</label>
+                    <div className="mt-2">
+                      <input
+                        type="date"
+                        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-400 sm:text-sm"
+                        value={selectedWorkshop.dataRealizacao}
+                        onChange={(e) =>
+                          handleUpdateWorkshop("dataRealizacao", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="sm:col-span-6">
+                    <label className="block text-sm font-medium text-gray-900">Descrição</label>
+                    <div className="mt-2">
+                      <textarea
+                        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-400 sm:text-sm"
+                        value={selectedWorkshop.descricao}
+                        onChange={(e) => handleUpdateWorkshop("descricao", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="mt-6 flex items-center justify-end gap-x-6">
+              <button
+                type="button"
+                onClick={() => setShowDetails(false)}
+                className="text-sm font-semibold text-gray-900"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                onClick={() => {
+                  api
+                    .put(`/workshops/${selectedWorkshop.id}`, selectedWorkshop)
+                    .then(() => {
+                      setNotification("Workshop atualizado com sucesso.");
+                      setTimeout(() => setNotification(""), 3000);
+                      setShowDetails(false);
+                    })
+                    .catch((error) => console.error("Erro ao atualizar workshop:", error));
+                }}
+                className="rounded-md bg-blue-400 px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
+              >
+                Salvar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {notification && (
         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white py-2 px-4 rounded shadow">
           {notification}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AiOutlineClose } from "react-icons/ai"; // Import close icon
+import { AiOutlineClose } from "react-icons/ai";
 import api from "../../Services/api";
 
 const CollaboratorList = () => {
@@ -39,7 +39,7 @@ const CollaboratorList = () => {
       .then(() => {
         setCollaborators(collaborators.filter((c) => c.id !== id));
         setNotification("Collaborator deleted successfully");
-        setTimeout(() => setNotification(""), 3000); // Clear notification after 3 seconds
+        setTimeout(() => setNotification(""), 3000);
       })
       .catch((error) => console.error("Error deleting collaborator:", error));
   };
@@ -55,7 +55,7 @@ const CollaboratorList = () => {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-semibold mb-4">Collaborators</h1>
+      <h1 className="text-2xl font-semibold mb-4">Colaboradores</h1>
       {collaborators.length > 0 ? (
         <ul className="divide-y divide-gray-200">
           {collaborators.map((collaborator) => (
@@ -76,13 +76,13 @@ const CollaboratorList = () => {
                 </p>
               </div>
               <button
-                className="text-red-500 hover:text-red-700"
+                className="text-gray-500 hover:text-gray-700"
                 onClick={(e) => {
-                  e.stopPropagation(); // Prevent click from opening details
+                  e.stopPropagation();
                   handleDeleteCollaborator(collaborator.id);
                 }}
               >
-                ✖
+                <AiOutlineClose size={24} />
               </button>
             </li>
           ))}
@@ -91,44 +91,46 @@ const CollaboratorList = () => {
         <p className="text-gray-500">Nenhum colaborador encontrado.</p>
       )}
       <button
-        className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+        className="mt-4 bg-blue-400 text-white px-4 py-2 rounded"
         onClick={() => setShowAddForm(true)}
       >
-        Add Collaborator
+        Adicione um Colaborador
       </button>
 
-      {/* Add Collaborator Modal */}
       {showAddForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg w-1/2 p-6 relative">
+          <div className="bg-white rounded-lg shadow-lg w-2/5 p-6 relative">
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
               onClick={() => setShowAddForm(false)}
             >
               <AiOutlineClose size={24} />
             </button>
-            <h2 className="text-lg font-semibold">Add New Collaborator</h2>
+            <h2 className="text-lg font-semibold">Adicione um novo Colaborador</h2>
             <form onSubmit={handleAddCollaborator} className="space-y-4 mt-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Name</label>
+                <label className="block text-sm font-medium text-gray-700">Nome</label>
                 <input
                   type="text"
-                  className="w-full rounded border-gray-300"
+                  className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-400 sm:text-sm"
                   value={newCollaborator.nome}
                   onChange={(e) => setNewCollaborator({ nome: e.target.value })}
                   required
                 />
               </div>
-              <div className="flex justify-end space-x-2">
+              <div className="flex justify-end space-x-2 mt-4">
                 <button
                   type="button"
-                  className="bg-gray-500 text-white px-4 py-2 rounded"
+                  className="text-sm font-semibold text-gray-900"
                   onClick={() => setShowAddForm(false)}
                 >
-                  Cancel
+                  Cancelar
                 </button>
-                <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
-                  Add
+                <button 
+                  type="submit" 
+                  className="rounded-md bg-blue-400 px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                >
+                  Salvar
                 </button>
               </div>
             </form>
@@ -136,11 +138,12 @@ const CollaboratorList = () => {
         </div>
       )}
 
-      {/* Collaborator Details Modal */}
+
       {showDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg w-1/2 p-6 relative">
+          <form className="bg-white rounded-lg shadow-lg w-2/5 p-6 relative space-y-8">
             <button
+              type="button"
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
               onClick={() => setShowDetails(false)}
             >
@@ -148,25 +151,49 @@ const CollaboratorList = () => {
             </button>
             {selectedCollaborator && (
               <div>
-                <h2 className="text-lg font-semibold">Edit Collaborator</h2>
-                <div className="space-y-4 mt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Name</label>
-                    <input
-                      type="text"
-                      className="w-full rounded border-gray-300"
-                      value={selectedCollaborator.nome}
-                      onChange={(e) => handleUpdateCollaborator("nome", e.target.value)}
-                    />
+                <h2 className="text-lg font-semibold text-gray-900">Edite o Colaborador</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Atualize os dados do colaborador.
+                </p>
+                <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                  <div className="sm:col-span-6">
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-900">
+                      Nome
+                    </label>
+                    <div className="mt-2">
+                      <input
+                        id="name"
+                        type="text"
+                        value={selectedCollaborator.nome}
+                        onChange={(e) => handleUpdateCollaborator("nome", e.target.value)}
+                        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-400 sm:text-sm"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             )}
-          </div>
+            <div className="mt-6 flex items-center justify-end gap-x-6">
+              <button
+                type="button"
+                onClick={() => setShowDetails(false)}
+                className="text-sm font-semibold text-gray-900"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="rounded-md bg-blue-400 px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              >
+                Salvar
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
-      {/* Notification */}
+
+
       {notification && (
          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white py-2 px-4 rounded shadow">
           {notification}
