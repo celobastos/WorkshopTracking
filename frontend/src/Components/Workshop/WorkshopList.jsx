@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../../Services/api";
-import { AiOutlineClose, AiOutlineEye } from "react-icons/ai";
+import { AiOutlineClose, AiOutlineEye, AiOutlineUserAdd } from "react-icons/ai";
 import { Bar, Pie } from "react-chartjs-2";
 import "chart.js/auto";
 
@@ -13,21 +13,22 @@ const WorkshopsList = () => {
   const [notification, setNotification] = useState("");
   const [atasDetails, setAtasDetails] = useState(null);
   const [showAtasDetails, setShowAtasDetails] = useState(false);
-  const [participationData, setParticipationData] = useState(null);
-  const [collaboratorsByWorkshop, setCollaboratorsByWorkshop] = useState(null);
-  const [collaborators, setCollaborators] = useState([]);
   const [totalColaboradores, setTotalColaboradores] = useState(0);
+  const [collaborators, setCollaborators] = useState([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedCollaborators, setSelectedCollaborators] = useState([]);
 
-useEffect(() => {
-  api
-    .get("/colaboradores")
-    .then((res) => {
-      const collaboratorsData = res.data?.$values || [];
-      setCollaborators(collaboratorsData);
-      setTotalColaboradores(collaboratorsData.length);
-    })
-    .catch((err) => console.error("Error fetching collaborators:", err));
-}, []);
+   useEffect(() => {
+    api
+      .get("/colaboradores")
+      .then((res) => {
+        const collaboratorsData = res.data?.$values || [];
+        setTotalColaboradores(collaboratorsData.length);
+        setCollaborators(collaboratorsData);
+      })
+      .catch((err) => console.error("Error fetching collaborators:", err));
+  }, []);
+
 
 
   useEffect(() => {
@@ -81,23 +82,41 @@ useEffect(() => {
       .then((response) => {
         setAtasDetails(response.data);
         setShowAtasDetails(true);
-
-        // Prepare graph data
-        const collaborators = {};
-        const workshopCollaborators = {};
-
-        response.data.$values.forEach((ata) => {
-          ata.colaboradores.$values.forEach((colaborador) => {
-            collaborators[colaborador.nome] = (collaborators[colaborador.nome] || 0) + 1;
-          });
-          workshopCollaborators[ata.id] = ata.colaboradores.$values.length;
-        });
-
-        setParticipationData(collaborators);
-        setCollaboratorsByWorkshop(workshopCollaborators);
       })
       .catch((error) => console.error("Error fetching Atas details:", error));
   };
+  const handleAssignCollaborators = (workshop) => {
+    setSelectedWorkshop(workshop);
+    setSelectedCollaborators([]);
+    setShowAssignModal(true);
+  };
+
+  const handleSaveAssignments = () => {
+    const payload = {
+      workshopId: selectedWorkshop.id,
+      colaboradorIds: selectedCollaborators,
+    };
+
+    api
+      .post("/atas", payload)
+      .then(() => {
+        setNotification("Colaboradores atribuídos com sucesso!");
+        setTimeout(() => setNotification(""), 3000);
+        setShowAssignModal(false);
+      })
+      .catch((error) => console.error("Error assigning collaborators:", error));
+  };
+
+  const toggleCollaborator = (collaboratorId) => {
+    if (selectedCollaborators.includes(collaboratorId)) {
+      setSelectedCollaborators(selectedCollaborators.filter((id) => id !== collaboratorId));
+    } else {
+      setSelectedCollaborators([...selectedCollaborators, collaboratorId]);
+    }
+  };
+
+  
+
   return (
     <div className="p-8">
       <h1 className="text-2xl font-semibold mb-4">Workshops</h1>
@@ -128,6 +147,16 @@ useEffect(() => {
               >
                 <AiOutlineEye size={20} />
                 Detalhes
+              </button>
+              <button
+                className="text-green-500 hover:text-green-700 flex items-center gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAssignCollaborators(workshop);
+                }}
+              >
+                <AiOutlineUserAdd size={20} />
+                Atribuir Colaboradores
               </button>
               <button
                 className="text-gray-500 hover:text-gray-700"
@@ -310,115 +339,167 @@ useEffect(() => {
         </div>
       )}
 
-{showAtasDetails && atasDetails && (
+      {showAtasDetails && atasDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg w-3/5 p-6 max-h-[80vh] overflow-y-auto relative">
+            <button
+              type="button"
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowAtasDetails(false)}
+            >
+              <AiOutlineClose size={24} />
+            </button>
+            <h2 className="text-lg font-semibold text-gray-900">Detalhes do Workshop</h2>
+
+            <div className="mt-4">
+              <h3 className="text-sm font-medium text-gray-700">Participação dos Colaboradores</h3>
+              <div className="h-[300px]">
+                <Bar
+                  data={{
+                    labels: atasDetails.$values.map((ata) => `Ata ${ata.id}`),
+                    datasets: [
+                      {
+                        label: "Colaboradores Presentes",
+                        data: atasDetails.$values.map((ata) => ata.colaboradores?.$values.length || 0),
+                        backgroundColor: "rgba(54, 162, 235, 0.6)"
+                      },
+                      {
+                        label: "Colaboradores Ausentes",
+                        data: atasDetails.$values.map(
+                          (ata) =>
+                            totalColaboradores - (ata.colaboradores?.$values.length || 0)
+                        ),
+                        backgroundColor: "rgba(255, 99, 132, 0.6)"
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: "top"
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-700">Distribuição de Colaboradores</h3>
+              <div className="h-[300px]">
+                <Pie
+                  data={{
+                    labels: ["Presentes", "Ausentes"],
+                    datasets: [
+                      {
+                        data: [
+                          atasDetails.$values.reduce(
+                            (total, ata) => total + (ata.colaboradores?.$values.length || 0),
+                            0
+                          ),
+                          totalColaboradores -
+                            atasDetails.$values.reduce(
+                              (total, ata) => total + (ata.colaboradores?.$values.length || 0),
+                              0
+                            )
+                        ],
+                        backgroundColor: [
+                          "rgba(54, 162, 235, 0.6)", 
+                          "rgba(255, 99, 132, 0.6)"
+                        ]
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: "top"
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-700">Lista de Atas</h3>
+              <ul className="mt-4 divide-y divide-gray-200">
+                {atasDetails.$values.map((ata) => (
+                  <li key={ata.id} className="py-2">
+                    <p className="text-sm text-gray-900">
+                      Ata: {ata.id} - Data de Registro: {new Date(ata.dataRegistro).toLocaleDateString()}
+                    </p>
+                    <ul className="ml-4 mt-2">
+                      {ata.colaboradores?.$values.map((colaborador) => (
+                        <li key={colaborador.id} className="text-sm text-gray-700">
+                          - {colaborador.nome || "Nome não informado"}
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Collaborators Modal */}
+{showAssignModal && selectedWorkshop && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
     <div className="bg-white rounded-lg shadow-lg w-3/5 p-6 max-h-[80vh] overflow-y-auto relative">
       <button
         type="button"
         className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-        onClick={() => setShowAtasDetails(false)}
+        onClick={() => setShowAssignModal(false)}
       >
         <AiOutlineClose size={24} />
       </button>
-      <h2 className="text-lg font-semibold text-gray-900">Detalhes do Workshop</h2>
+      <h2 className="text-lg font-semibold text-gray-900">Atribuir Colaboradores</h2>
+      <p className="text-sm text-gray-600 mt-4">
+        Workshop: <span className="font-medium">{selectedWorkshop.nome}</span>
+      </p>
 
-      <div className="mt-4">
-        <h3 className="text-sm font-medium text-gray-700">Participação dos Colaboradores</h3>
-        <div className="h-[300px]">
-          <Bar
-            data={{
-              labels: atasDetails.$values.map((ata) => `Ata ${ata.id}`),
-              datasets: [
-                {
-                  label: "Colaboradores Presentes",
-                  data: atasDetails.$values.map((ata) => ata.colaboradores?.$values.length || 0),
-                  backgroundColor: "rgba(54, 162, 235, 0.6)"
-                },
-                {
-                  label: "Colaboradores Ausentes",
-                  data: atasDetails.$values.map(
-                    (ata) =>
-                      totalColaboradores - (ata.colaboradores?.$values.length || 0)
-                  ),
-                  backgroundColor: "rgba(255, 99, 132, 0.6)"
-                }
-              ]
-            }}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: "top"
-                }
-              }
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <h3 className="text-sm font-medium text-gray-700">Distribuição de Colaboradores</h3>
-        <div className="h-[300px]">
-          <Pie
-            data={{
-              labels: ["Presentes", "Ausentes"],
-              datasets: [
-                {
-                  data: [
-                    atasDetails.$values.reduce(
-                      (total, ata) => total + (ata.colaboradores?.$values.length || 0),
-                      0
-                    ),
-                    totalColaboradores -
-                      atasDetails.$values.reduce(
-                        (total, ata) => total + (ata.colaboradores?.$values.length || 0),
-                        0
-                      )
-                  ],
-                  backgroundColor: [
-                    "rgba(54, 162, 235, 0.6)", 
-                    "rgba(255, 99, 132, 0.6)"
-                  ]
-                }
-              ]
-            }}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: "top"
-                }
-              }
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <h3 className="text-sm font-medium text-gray-700">Lista de Atas</h3>
-        <ul className="mt-4 divide-y divide-gray-200">
-          {atasDetails.$values.map((ata) => (
-            <li key={ata.id} className="py-2">
-              <p className="text-sm text-gray-900">
-                Ata: {ata.id} - Data de Registro: {new Date(ata.dataRegistro).toLocaleDateString()}
-              </p>
-              <ul className="ml-4 mt-2">
-                {ata.colaboradores?.$values.map((colaborador) => (
-                  <li key={colaborador.id} className="text-sm text-gray-700">
-                    - {colaborador.nome || "Nome não informado"}
-                  </li>
-                ))}
-              </ul>
+      {/* Show a loading or error message if collaborators are not loaded */}
+      {collaborators.length === 0 ? (
+        <p className="text-sm text-gray-500 mt-6">Nenhum colaborador encontrado.</p>
+      ) : (
+        <ul className="mt-6 space-y-2">
+          {collaborators.map((collaborator) => (
+            <li key={collaborator.id} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={selectedCollaborators.includes(collaborator.id)}
+                onChange={() => toggleCollaborator(collaborator.id)}
+              />
+              <span className="text-sm text-gray-800">{collaborator.nome}</span>
             </li>
           ))}
         </ul>
+      )}
+
+      <div className="mt-6 flex items-center justify-end gap-4">
+        <button
+          className="text-sm font-semibold text-gray-700"
+          onClick={() => setShowAssignModal(false)}
+        >
+          Cancelar
+        </button>
+        <button
+          className="rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-white"
+          onClick={handleSaveAssignments}
+          disabled={selectedCollaborators.length === 0} // Disable if no collaborators selected
+        >
+          Salvar
+        </button>
       </div>
     </div>
   </div>
 )}
-
 
 
       {notification && (
