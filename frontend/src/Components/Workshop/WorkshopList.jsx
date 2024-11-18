@@ -387,28 +387,22 @@ const WorkshopsList = () => {
             </div>
 
             <div className="mt-6">
-              <h3 className="text-sm font-medium text-gray-700">Distribuição de Colaboradores</h3>
+              <h3 className="text-sm font-medium text-gray-700">Distribuição Geral de Atas</h3>
               <div className="h-[300px]">
                 <Pie
                   data={{
-                    labels: ["Presentes", "Ausentes"],
+                    labels: atasDetails.$values.map((ata) => `Ata ${ata.id}`),
                     datasets: [
                       {
-                        data: [
-                          atasDetails.$values.reduce(
-                            (total, ata) => total + (ata.colaboradores?.$values.length || 0),
-                            0
-                          ),
-                          totalColaboradores -
-                            atasDetails.$values.reduce(
-                              (total, ata) => total + (ata.colaboradores?.$values.length || 0),
-                              0
-                            )
-                        ],
-                        backgroundColor: [
-                          "rgba(54, 162, 235, 0.6)", 
-                          "rgba(255, 99, 132, 0.6)"
-                        ]
+                        data: atasDetails.$values.map(
+                          (ata) => ata.colaboradores?.$values.length || 0
+                        ),
+                        backgroundColor: atasDetails.$values.map(
+                          (_, index) =>
+                            `rgba(${(index * 50) % 255}, ${(index * 100) % 255}, ${
+                              (index * 150) % 255
+                            }, 0.6)`
+                        )
                       }
                     ]
                   }}
@@ -448,58 +442,56 @@ const WorkshopsList = () => {
         </div>
       )}
 
-      {/* Assign Collaborators Modal */}
-{showAssignModal && selectedWorkshop && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-    <div className="bg-white rounded-lg shadow-lg w-3/5 p-6 max-h-[80vh] overflow-y-auto relative">
-      <button
-        type="button"
-        className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-        onClick={() => setShowAssignModal(false)}
-      >
-        <AiOutlineClose size={24} />
-      </button>
-      <h2 className="text-lg font-semibold text-gray-900">Atribuir Colaboradores</h2>
-      <p className="text-sm text-gray-600 mt-4">
-        Workshop: <span className="font-medium">{selectedWorkshop.nome}</span>
-      </p>
+      {showAssignModal && selectedWorkshop && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg w-3/5 p-6 max-h-[80vh] overflow-y-auto relative">
+            <button
+              type="button"
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowAssignModal(false)}
+            >
+              <AiOutlineClose size={24} />
+            </button>
+            <h2 className="text-lg font-semibold text-gray-900">Atribuir Colaboradores</h2>
+            <p className="text-sm text-gray-600 mt-4">
+              Workshop: <span className="font-medium">{selectedWorkshop.nome}</span>
+            </p>
 
-      {/* Show a loading or error message if collaborators are not loaded */}
-      {collaborators.length === 0 ? (
-        <p className="text-sm text-gray-500 mt-6">Nenhum colaborador encontrado.</p>
-      ) : (
-        <ul className="mt-6 space-y-2">
-          {collaborators.map((collaborator) => (
-            <li key={collaborator.id} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={selectedCollaborators.includes(collaborator.id)}
-                onChange={() => toggleCollaborator(collaborator.id)}
-              />
-              <span className="text-sm text-gray-800">{collaborator.nome}</span>
-            </li>
-          ))}
-        </ul>
+            {collaborators.length === 0 ? (
+              <p className="text-sm text-gray-500 mt-6">Nenhum colaborador encontrado.</p>
+            ) : (
+              <ul className="mt-6 space-y-2">
+                {collaborators.map((collaborator) => (
+                  <li key={collaborator.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedCollaborators.includes(collaborator.id)}
+                      onChange={() => toggleCollaborator(collaborator.id)}
+                    />
+                    <span className="text-sm text-gray-800">{collaborator.nome}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="mt-6 flex items-center justify-end gap-4">
+              <button
+                className="text-sm font-semibold text-gray-700"
+                onClick={() => setShowAssignModal(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-white"
+                onClick={handleSaveAssignments}
+                disabled={selectedCollaborators.length === 0}
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-
-      <div className="mt-6 flex items-center justify-end gap-4">
-        <button
-          className="text-sm font-semibold text-gray-700"
-          onClick={() => setShowAssignModal(false)}
-        >
-          Cancelar
-        </button>
-        <button
-          className="rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-white"
-          onClick={handleSaveAssignments}
-          disabled={selectedCollaborators.length === 0} // Disable if no collaborators selected
-        >
-          Salvar
-        </button>
-      </div>
-    </div>
-  </div>
-)}
 
 
       {notification && (

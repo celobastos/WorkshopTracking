@@ -4,7 +4,6 @@ import { Link, useLocation } from "react-router-dom";
 const navigation = [
   { name: "Equipe", href: "/collaborators" },
   { name: "Workshops", href: "/workshops" },
-  { name: "Atas", href: "/atas"}
 ];
 
 function classNames(...classes) {
