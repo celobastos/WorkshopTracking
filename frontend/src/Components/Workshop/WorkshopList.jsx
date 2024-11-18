@@ -6,43 +6,51 @@ const WorkshopsList = () => {
   const [newWorkshop, setNewWorkshop] = useState({ nome: "", dataRealizacao: "", descricao: "" });
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Fetch all workshops
   useEffect(() => {
     api
       .get("/workshops")
-      .then((response) => setWorkshops(response.data))
+      .then((response) => {
+        const workshopsData = response.data?.$values || [];
+        setWorkshops(workshopsData);
+      })
       .catch((error) => console.error("Error fetching workshops:", error));
   }, []);
 
-  // Add new workshop
   const handleAddWorkshop = (e) => {
     e.preventDefault();
     api
       .post("/workshops", newWorkshop)
       .then((response) => {
-        setWorkshops([...workshops, response.data]); // Add new workshop to the list
-        setNewWorkshop({ nome: "", dataRealizacao: "", descricao: "" }); // Reset form
-        setShowAddForm(false); // Close form
+        const addedWorkshop = response.data;
+        setWorkshops([...workshops, addedWorkshop]);
+        setNewWorkshop({ nome: "", dataRealizacao: "", descricao: "" }); 
+        setShowAddForm(false);
       })
       .catch((error) => console.error("Error adding workshop:", error));
   };
 
   return (
-    <div className="p-4">
+    <div className="p-8">
       <h1 className="text-2xl font-semibold mb-4">Workshops</h1>
-      <ul className="divide-y divide-gray-200">
-        {workshops.map((workshop) => (
-          <li key={workshop.id} className="flex justify-between gap-x-6 py-5">
-            <div className="flex min-w-0 gap-x-4">
-              <div className="min-w-0 flex-auto">
-                <p className="text-sm font-semibold text-gray-900">{workshop.nome}</p>
-                <p className="mt-1 text-xs text-gray-500">Realização: {workshop.dataRealizacao}</p>
-                <p className="mt-1 text-xs text-gray-500">{workshop.descricao}</p>
+      {workshops.length > 0 ? (
+        <ul className="divide-y divide-gray-200">
+          {workshops.map((workshop) => (
+            <li key={workshop.id} className="flex justify-between gap-x-6 py-5">
+              <div className="flex min-w-0 gap-x-4">
+                <div className="min-w-0 flex-auto">
+                  <p className="text-sm font-semibold text-gray-900">{workshop.nome}</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Realização: {new Date(workshop.dataRealizacao).toLocaleDateString()}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">{workshop.descricao}</p>
+                </div>
               </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-500">Nenhum workshop encontrado.</p>
+      )}
       <button
         className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
         onClick={() => setShowAddForm(true)}
@@ -50,7 +58,6 @@ const WorkshopsList = () => {
         Add Workshop
       </button>
 
-      {/* Add Workshop Form */}
       {showAddForm && (
         <div className="mt-4 border p-4 rounded bg-gray-100">
           <h2 className="text-lg font-semibold">Add New Workshop</h2>

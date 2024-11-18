@@ -9,48 +9,61 @@ const Dashboard = () => {
   useEffect(() => {
     api
       .get("/workshops")
-      .then((response) => setWorkshops(response.data))
+      .then((response) => {
+        const workshopsData = response.data?.$values || []; // Extract $values if present
+        setWorkshops(workshopsData);
+      })
       .catch((error) => console.error("Error fetching workshops:", error));
 
     api
       .get("/colaboradores")
       .then((response) => {
-        console.log("Collaborators Data:", response.data);
-        setCollaborators(response.data);
+        const collaboratorsData = response.data?.$values || []; // Extract $values if present
+        setCollaborators(collaboratorsData);
       })
       .catch((error) => console.error("Error fetching collaborators:", error));
   }, []);
 
-  const renderWorkshopList = (items) => (
-    <ul className="divide-y divide-gray-100">
-      {items.map((item, index) => (
-        <li key={index} className="flex justify-between gap-x-6 py-5">
-          <div className="flex min-w-0 gap-x-4">
-            <div className="min-w-0 flex-auto">
-              <p className="text-sm font-semibold text-gray-900">{item.name}</p>
-              <p className="mt-1 text-xs text-gray-500">
-                Realização: {item.realizacao}
-              </p>
+  const renderWorkshopList = (items) => {
+    if (!Array.isArray(items)) {
+      return <p className="text-center text-gray-500">Nenhum workshop encontrado.</p>;
+    }
+
+    return (
+      <ul className="divide-y divide-gray-100">
+        {items.map((item) => (
+          <li key={item.id} className="flex justify-between gap-x-6 py-5">
+            <div className="flex min-w-0 gap-x-4">
+              <div className="min-w-0 flex-auto">
+                <p className="text-sm font-semibold text-gray-900">{item.nome}</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Realização: {new Date(item.dataRealizacao).toLocaleDateString()}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">{item.descricao}</p>
+              </div>
             </div>
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
+          </li>
+        ))}
+      </ul>
+    );
+  };
 
   const renderCollaboratorList = (items) => {
-    if (!items.length) {
+    if (!Array.isArray(items)) {
       return <p className="text-center text-gray-500">Nenhum colaborador encontrado.</p>;
     }
 
     return (
       <ul className="divide-y divide-gray-100">
-        {items.map((item, index) => (
-          <li key={index} className="flex justify-between gap-x-6 py-5">
+        {items.map((item) => (
+          <li key={item.id} className="flex justify-between gap-x-6 py-5">
             <div className="flex min-w-0 gap-x-4">
               <div className="min-w-0 flex-auto">
                 <p className="text-sm font-semibold text-gray-900">
                   {item.nome || "Colaborador sem nome"}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Atas: {item.atas?.$values.length || 0}
                 </p>
               </div>
             </div>
@@ -63,9 +76,9 @@ const Dashboard = () => {
   const features = [
     {
       title: "Workshops",
-      description: "Todos os workshops disponíveis.",
+      description: "Lista de Workshops recentes.",
       content: renderWorkshopList(workshops),
-      linkText: "Veja toda a lista de workshops",
+      linkText: "Lista de workshops recentes",
       linkTo: "/workshops",
       style: "lg:row-span-2 lg:col-start-1",
     },
@@ -83,7 +96,7 @@ const Dashboard = () => {
     },
     {
       title: "Colaboradores",
-      description: "A lista de todos os colaboradores.",
+      description: "Lista de colaboradores recentes.",
       content: renderCollaboratorList(collaborators),
       linkText: "Veja toda a lista de colaboradores",
       linkTo: "/collaborators",
