@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Pie, Line } from "react-chartjs-2";
 import api from "../../Services/api";
 
 const Dashboard = () => {
   const [workshops, setWorkshops] = useState([]);
   const [collaborators, setCollaborators] = useState([]);
+  const [atas, setAtas] = useState([]);
+  const [pieChartData, setPieChartData] = useState(null);
+  const [lineChartData, setLineChartData] = useState(null);
 
   useEffect(() => {
     api
       .get("/workshops")
       .then((response) => {
-        const workshopsData = response.data?.$values || []; // Extract $values if present
+        const workshopsData = response.data?.$values || [];
         setWorkshops(workshopsData);
       })
       .catch((error) => console.error("Error fetching workshops:", error));
@@ -18,11 +22,65 @@ const Dashboard = () => {
     api
       .get("/colaboradores")
       .then((response) => {
-        const collaboratorsData = response.data?.$values || []; // Extract $values if present
+        const collaboratorsData = response.data?.$values || [];
         setCollaborators(collaboratorsData);
       })
       .catch((error) => console.error("Error fetching collaborators:", error));
-  }, []);
+
+    api
+      .get("/atas")
+      .then((response) => {
+        const atasData = response.data?.$values || [];
+        setAtas(atasData);
+
+        const workshopsParticipation = {};
+        const participationOverTime = {};
+
+        atasData.forEach((ata) => {
+          const workshopId = ata.workshopId;
+          const ataDate = new Date(ata.dataRegistro).toLocaleDateString();
+
+          workshopsParticipation[workshopId] =
+            (workshopsParticipation[workshopId] || 0) + ata.colaboradores?.$values.length;
+
+          participationOverTime[ataDate] =
+            (participationOverTime[ataDate] || 0) + ata.colaboradores?.$values.length;
+        });
+
+        const pieData = {
+          labels: Object.keys(workshopsParticipation).map((id) => {
+            const workshop = workshops.find((w) => w.id === parseInt(id, 10));
+            return workshop ? workshop.nome : `Workshop ${id}`;
+          }),
+          datasets: [
+            {
+              data: Object.values(workshopsParticipation),
+              backgroundColor: Object.keys(workshopsParticipation).map(
+                (_, index) =>
+                  `rgba(${(index * 50) % 255}, ${(index * 100) % 255}, ${(index * 150) % 255}, 0.6)`
+              ),
+            },
+          ],
+        };
+        setPieChartData(pieData);
+
+        const lineData = {
+          labels: Object.keys(participationOverTime).sort((a, b) => new Date(a) - new Date(b)),
+          datasets: [
+            {
+              label: "Participação dos Colaboradores",
+              data: Object.values(participationOverTime),
+              borderColor: "rgba(75, 192, 192, 1)",
+              backgroundColor: "rgba(75, 192, 192, 0.3)",
+              fill: true,
+              tension: 0.4,
+            },
+          ],
+        };
+        setLineChartData(lineData);
+      })
+      .catch((error) => console.error("Error fetching atas:", error));
+  }, );
 
   const renderWorkshopList = (items) => {
     if (!Array.isArray(items)) {
@@ -85,13 +143,21 @@ const Dashboard = () => {
     {
       title: "Performance",
       description: "Visualizações relacionadas à performance.",
-      content: null,
+      content: pieChartData && (
+        <div className="h-[300px]">
+          <Pie data={pieChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+        </div>
+      ),
       style: "lg:col-start-2 lg:row-start-1",
     },
     {
       title: "Segurança",
       description: "Visualizações relacionadas à segurança.",
-      content: null,
+      content: lineChartData && (
+        <div className="h-[300px]">
+          <Line data={lineChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+        </div>
+      ),
       style: "lg:col-start-2 lg:row-start-2",
     },
     {
