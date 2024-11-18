@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 const navigation = [
   { name: "Equipe", href: "/collaborators" },
   { name: "Workshops", href: "/workshops" },
+  { name: "Atas", href: "/atas"}
 ];
 
 function classNames(...classes) {
@@ -16,9 +17,8 @@ export default function Navbar() {
 
   return (
     <nav className="bg-gray-800">
-      <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+      <div className="mx-3 max-w-7xl px-2 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
-          {/* Mobile Menu Button */}
           <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
             <button
               className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none"
@@ -33,8 +33,7 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Logo */}
-          <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
+          <div className="flex flex-1 items-left justify-center sm:items-stretch sm:justify-start">
             <div className="flex shrink-0 items-center">
               <img
                 alt="schedule.Up"
@@ -43,7 +42,6 @@ export default function Navbar() {
               />
             </div>
 
-            {/* Desktop Navigation */}
             <div className="hidden sm:ml-6 sm:block">
               <div className="flex space-x-4">
                 {navigation.map((item) => (
@@ -67,7 +65,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Navigation */}
       {isMobileMenuOpen && (
         <div className="sm:hidden px-2 pb-3 pt-2">
           {navigation.map((item) => (

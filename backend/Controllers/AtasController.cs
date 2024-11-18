@@ -44,31 +44,33 @@ namespace WorkshopTracking.Controllers
         }
 
         // Get Ata by ID
-        [HttpGet("{id}")]
-        public IActionResult GetAtaById(int id)
-        {
-            var ata = _context.AtasPresenca
-                .Include(a => a.Workshop)
-                .Include(a => a.Colaboradores)
-                .Select(a => new AtaDto
+    [HttpGet("by-workshop/{workshopId}")]
+    public IActionResult GetAtaById(int workshopId)
+    {
+        var atas = _context.AtasPresenca
+            .Include(a => a.Workshop)
+            .Include(a => a.Colaboradores)
+            .Where(a => a.WorkshopId == workshopId)
+            .Select(a => new AtaDto
+            {
+                Id = a.Id,
+                WorkshopId = a.WorkshopId,
+                WorkshopName = a.Workshop.Nome,
+                DataRegistro = a.DataRegistro,
+                Colaboradores = a.Colaboradores.Select(c => new ColaboradorDto
                 {
-                    Id = a.Id,
-                    WorkshopId = a.WorkshopId,
-                    WorkshopName = a.Workshop.Nome,
-                    DataRegistro = a.DataRegistro,
-                    Colaboradores = a.Colaboradores.Select(c => new ColaboradorDto
-                    {
-                        Id = c.Id,
-                        Nome = c.Nome
-                    }).ToList()
-                })
-                .FirstOrDefault(a => a.Id == id);
+                    Id = c.Id,
+                    Nome = c.Nome
+                }).ToList()
+            })
+        .ToList();
 
-            if (ata == null)
-                return NotFound();
+    if (!atas.Any())
+        return NotFound($"No Atas found for WorkshopId: {workshopId}");
 
-            return Ok(ata);
-        }
+    return Ok(atas);
+}
+
 
         // Add a new Ata
         [HttpPost]

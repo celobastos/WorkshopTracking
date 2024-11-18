@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../../Services/api";
-import { AiOutlineClose } from "react-icons/ai";
+import { AiOutlineClose, AiOutlineEye } from "react-icons/ai";
 
 const WorkshopsList = () => {
   const [workshops, setWorkshops] = useState([]);
@@ -9,6 +9,8 @@ const WorkshopsList = () => {
   const [selectedWorkshop, setSelectedWorkshop] = useState(null);
   const [newWorkshop, setNewWorkshop] = useState({ nome: "", dataRealizacao: "", descricao: "" });
   const [notification, setNotification] = useState("");
+  const [atasDetails, setAtasDetails] = useState(null);
+  const [showAtasDetails, setShowAtasDetails] = useState(false);
 
   // Fetch workshops
   useEffect(() => {
@@ -56,6 +58,17 @@ const WorkshopsList = () => {
       .catch((error) => console.error("Error updating workshop:", error));
   };
 
+  const fetchAtasByWorkshopId = (workshopId) => {
+    api
+      .get(`/atas/by-workshop/${workshopId}`)
+      .then((response) => {
+        setAtasDetails(response.data);
+        setShowDetails(true);
+      })
+      .catch((error) => console.error("Error fetching Atas details:", error));
+  };
+
+
   return (
     <div className="p-8">
       <h1 className="text-2xl font-semibold mb-4">Workshops</h1>
@@ -76,15 +89,27 @@ const WorkshopsList = () => {
               </p>
               <p className="mt-1 text-xs text-gray-500">{workshop.descricao}</p>
             </div>
-            <button
-              className="text-gray-500 hover:text-gray-700"
-              onClick={(e) => {
-                e.stopPropagation(); 
-                handleDeleteWorkshop(workshop.id);
-              }}
-            >
-             <AiOutlineClose size={24} />
-            </button>
+            <div className="flex items-center space-x-4">
+              <button
+                className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent triggering workshop details modal
+                  fetchAtasByWorkshopId(workshop.id); // Fetch Atas details
+                }}
+              >
+                <AiOutlineEye size={20} />
+                Detalhes
+              </button>
+              <button
+                className="text-gray-500 hover:text-gray-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteWorkshop(workshop.id);
+                }}
+              >
+                <AiOutlineClose size={24} />
+              </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -97,7 +122,7 @@ const WorkshopsList = () => {
       {showAddForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <form
-            onSubmit={handleAddWorkshop} // Connect the function to the form
+            onSubmit={handleAddWorkshop}
             className="bg-white rounded-lg shadow-lg w-2/5 p-6 relative space-y-8"
           >
             <button
@@ -253,6 +278,37 @@ const WorkshopsList = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {showAtasDetails && atasDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg w-2/5 p-6 relative space-y-8">
+            <button
+              type="button"
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowAtasDetails(false)}
+            >
+              <AiOutlineClose size={24} />
+            </button>
+            <h2 className="text-lg font-semibold text-gray-900">Detalhes do Workshop</h2>
+            <p className="text-sm text-gray-600">Lista de Atas e Colaboradores presentes:</p>
+            <ul className="divide-y divide-gray-200 mt-4">
+              {atasDetails.colaboradores?.map((colaborador) => (
+                <li key={colaborador.id} className="py-2">
+                  <p className="text-sm font-medium text-gray-900">{colaborador.nome}</p>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 flex items-center justify-end">
+              <button
+                className="rounded-md bg-blue-400 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                onClick={() => setShowAtasDetails(false)}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
