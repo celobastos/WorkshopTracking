@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import logo from "../../Assets/logo.png";
 
 const navigation = [
   { name: "Equipe", href: "/collaborators" },
@@ -36,8 +37,9 @@ export default function Navbar() {
             <div className="flex shrink-0 items-center">
               <img
                 alt="schedule.Up"
-                src="https://tailwindui.com/plus/img/logos/mark.svg?color=indigo&shade=500"
+                src={logo}
                 className="h-8 w-auto"
+                style={{ marginTop: "-5px" }} /* Movendo a logo para cima */
               />
             </div>
 
