@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import api from "../../Services/api";
 import { AiOutlineClose, AiOutlineEye } from "react-icons/ai";
+import { Bar, Pie } from "react-chartjs-2";
+import "chart.js/auto";
 
 const WorkshopsList = () => {
   const [workshops, setWorkshops] = useState([]);
@@ -11,8 +13,23 @@ const WorkshopsList = () => {
   const [notification, setNotification] = useState("");
   const [atasDetails, setAtasDetails] = useState(null);
   const [showAtasDetails, setShowAtasDetails] = useState(false);
+  const [participationData, setParticipationData] = useState(null);
+  const [collaboratorsByWorkshop, setCollaboratorsByWorkshop] = useState(null);
+  const [collaborators, setCollaborators] = useState([]);
+  const [totalColaboradores, setTotalColaboradores] = useState(0);
 
-  // Fetch workshops
+useEffect(() => {
+  api
+    .get("/colaboradores")
+    .then((res) => {
+      const collaboratorsData = res.data?.$values || [];
+      setCollaborators(collaboratorsData);
+      setTotalColaboradores(collaboratorsData.length);
+    })
+    .catch((err) => console.error("Error fetching collaborators:", err));
+}, []);
+
+
   useEffect(() => {
     api
       .get("/workshops")
@@ -63,12 +80,24 @@ const WorkshopsList = () => {
       .get(`/atas/by-workshop/${workshopId}`)
       .then((response) => {
         setAtasDetails(response.data);
-        setShowDetails(true);
+        setShowAtasDetails(true);
+
+        // Prepare graph data
+        const collaborators = {};
+        const workshopCollaborators = {};
+
+        response.data.$values.forEach((ata) => {
+          ata.colaboradores.$values.forEach((colaborador) => {
+            collaborators[colaborador.nome] = (collaborators[colaborador.nome] || 0) + 1;
+          });
+          workshopCollaborators[ata.id] = ata.colaboradores.$values.length;
+        });
+
+        setParticipationData(collaborators);
+        setCollaboratorsByWorkshop(workshopCollaborators);
       })
       .catch((error) => console.error("Error fetching Atas details:", error));
   };
-
-
   return (
     <div className="p-8">
       <h1 className="text-2xl font-semibold mb-4">Workshops</h1>
@@ -93,8 +122,8 @@ const WorkshopsList = () => {
               <button
                 className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
                 onClick={(e) => {
-                  e.stopPropagation(); // Prevent triggering workshop details modal
-                  fetchAtasByWorkshopId(workshop.id); // Fetch Atas details
+                  e.stopPropagation();
+                  fetchAtasByWorkshopId(workshop.id); 
                 }}
               >
                 <AiOutlineEye size={20} />
@@ -281,36 +310,116 @@ const WorkshopsList = () => {
         </div>
       )}
 
-      {showAtasDetails && atasDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg w-2/5 p-6 relative space-y-8">
-            <button
-              type="button"
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-              onClick={() => setShowAtasDetails(false)}
-            >
-              <AiOutlineClose size={24} />
-            </button>
-            <h2 className="text-lg font-semibold text-gray-900">Detalhes do Workshop</h2>
-            <p className="text-sm text-gray-600">Lista de Atas e Colaboradores presentes:</p>
-            <ul className="divide-y divide-gray-200 mt-4">
-              {atasDetails.colaboradores?.map((colaborador) => (
-                <li key={colaborador.id} className="py-2">
-                  <p className="text-sm font-medium text-gray-900">{colaborador.nome}</p>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-6 flex items-center justify-end">
-              <button
-                className="rounded-md bg-blue-400 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
-                onClick={() => setShowAtasDetails(false)}
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
+{showAtasDetails && atasDetails && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="bg-white rounded-lg shadow-lg w-3/5 p-6 max-h-[80vh] overflow-y-auto relative">
+      <button
+        type="button"
+        className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+        onClick={() => setShowAtasDetails(false)}
+      >
+        <AiOutlineClose size={24} />
+      </button>
+      <h2 className="text-lg font-semibold text-gray-900">Detalhes do Workshop</h2>
+
+      <div className="mt-4">
+        <h3 className="text-sm font-medium text-gray-700">Participação dos Colaboradores</h3>
+        <div className="h-[300px]">
+          <Bar
+            data={{
+              labels: atasDetails.$values.map((ata) => `Ata ${ata.id}`),
+              datasets: [
+                {
+                  label: "Colaboradores Presentes",
+                  data: atasDetails.$values.map((ata) => ata.colaboradores?.$values.length || 0),
+                  backgroundColor: "rgba(54, 162, 235, 0.6)"
+                },
+                {
+                  label: "Colaboradores Ausentes",
+                  data: atasDetails.$values.map(
+                    (ata) =>
+                      totalColaboradores - (ata.colaboradores?.$values.length || 0)
+                  ),
+                  backgroundColor: "rgba(255, 99, 132, 0.6)"
+                }
+              ]
+            }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: "top"
+                }
+              }
+            }}
+          />
         </div>
-      )}
+      </div>
+
+      <div className="mt-6">
+        <h3 className="text-sm font-medium text-gray-700">Distribuição de Colaboradores</h3>
+        <div className="h-[300px]">
+          <Pie
+            data={{
+              labels: ["Presentes", "Ausentes"],
+              datasets: [
+                {
+                  data: [
+                    atasDetails.$values.reduce(
+                      (total, ata) => total + (ata.colaboradores?.$values.length || 0),
+                      0
+                    ),
+                    totalColaboradores -
+                      atasDetails.$values.reduce(
+                        (total, ata) => total + (ata.colaboradores?.$values.length || 0),
+                        0
+                      )
+                  ],
+                  backgroundColor: [
+                    "rgba(54, 162, 235, 0.6)", 
+                    "rgba(255, 99, 132, 0.6)"
+                  ]
+                }
+              ]
+            }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: "top"
+                }
+              }
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <h3 className="text-sm font-medium text-gray-700">Lista de Atas</h3>
+        <ul className="mt-4 divide-y divide-gray-200">
+          {atasDetails.$values.map((ata) => (
+            <li key={ata.id} className="py-2">
+              <p className="text-sm text-gray-900">
+                Ata: {ata.id} - Data de Registro: {new Date(ata.dataRegistro).toLocaleDateString()}
+              </p>
+              <ul className="ml-4 mt-2">
+                {ata.colaboradores?.$values.map((colaborador) => (
+                  <li key={colaborador.id} className="text-sm text-gray-700">
+                    - {colaborador.nome || "Nome não informado"}
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
       {notification && (
         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white py-2 px-4 rounded shadow">

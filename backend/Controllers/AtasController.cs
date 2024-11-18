@@ -72,44 +72,45 @@ namespace WorkshopTracking.Controllers
 }
 
 
-        // Add a new Ata
-        [HttpPost]
-        public IActionResult AddAta([FromBody] AddAtaDto ataDto)
+    [HttpPost]
+    public IActionResult AddAta([FromBody] AddAtaDto ataDto)
+    {
+        var workshopExists = _context.Workshops.Any(w => w.Id == ataDto.WorkshopId);
+        if (!workshopExists)
+            return BadRequest("Invalid WorkshopId.");
+
+        var colaboradores = _context.Colaboradores
+            .Where(c => ataDto.ColaboradorIds.Contains(c.Id))
+            .ToList();
+
+        if (colaboradores.Count != ataDto.ColaboradorIds.Count)
+            return BadRequest("Some ColaboradorIds are invalid.");
+
+        var ata = new Ata
         {
-            var workshopExists = _context.Workshops.Any(w => w.Id == ataDto.WorkshopId);
-            if (!workshopExists)
-                return BadRequest("Invalid WorkshopId.");
+            WorkshopId = ataDto.WorkshopId,
+            DataRegistro = DateTime.UtcNow,
+            Colaboradores = colaboradores
+        };
 
-            var colaboradores = _context.Colaboradores
-                .Where(c => ataDto.ColaboradorIds.Contains(c.Id))
-                .ToList();
+        _context.AtasPresenca.Add(ata);
+        _context.SaveChanges();
 
-            if (colaboradores.Count != ataDto.ColaboradorIds.Count)
-                return BadRequest("Some ColaboradorIds are invalid.");
-
-            var ata = new Ata
+        var responseDto = new AtaDto
+        {
+            Id = ata.Id,
+            WorkshopId = ata.WorkshopId,
+            WorkshopName = _context.Workshops.FirstOrDefault(w => w.Id == ata.WorkshopId)?.Nome ?? string.Empty,
+            DataRegistro = ata.DataRegistro,
+            Colaboradores = colaboradores.Select(c => new ColaboradorDto
             {
-                WorkshopId = ataDto.WorkshopId,
-                DataRegistro = DateTime.UtcNow,
-                Colaboradores = colaboradores
-            };
+                Id = c.Id,
+                Nome = c.Nome
+            }).ToList()
+        };
 
-            _context.AtasPresenca.Add(ata);
-            _context.SaveChanges();
-
-            return CreatedAtAction(nameof(GetAtaById), new { id = ata.Id }, new AtaDto
-            {
-                Id = ata.Id,
-                WorkshopId = ata.WorkshopId,
-                WorkshopName = _context.Workshops.FirstOrDefault(w => w.Id == ata.WorkshopId)?.Nome ?? string.Empty,
-                DataRegistro = ata.DataRegistro,
-                Colaboradores = colaboradores.Select(c => new ColaboradorDto
-                {
-                    Id = c.Id,
-                    Nome = c.Nome
-                }).ToList()
-            });
-        }
+        return CreatedAtAction(nameof(GetAtaById), new { workshopId = ata.WorkshopId }, responseDto);
+    }
 
         // Update an existing Ata
         [HttpPut("{id}")]
